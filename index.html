@@ -1,24 +1,91 @@
 <!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <title>WebAR Sample</title>
+<html>
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body style="margin: 0px; overflow: hidden">
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-  <!-- A-Frame -->
-  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <a-scene embedded arjs>
+      <a-entity camera></a-entity>
 
-  <!-- AR.js -->
-  <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.4/aframe/build/aframe-ar.min.js"></script>
-</head>
+      <!-- asset.glb を表示するマーカー -->
+      <a-marker type="pattern" url="marker/pattern-marker.patt">
+        <a-entity
+          position="0 0 0"
+          rotation="0 0 0"
+          scale="0.1 0.1 0.1"
+          gltf-model="asset.glb"
+          pinch-to-scale
+          drag-rotate
+        ></a-entity>
+      </a-marker>
+    </a-scene>
 
-<body style="margin:0; overflow:hidden;">
-  <a-scene embedded arjs="debugUIEnabled: false;">
-    
-    <a-marker preset="hiro">
-      <a-box position="0 0.5 0" color="red"></a-box>
-    </a-marker>
+    <script>
+      AFRAME.registerComponent("pinch-to-scale", {
+        init: function () {
+          this.initialScale = this.el.getAttribute("scale");
+          this.scaleFactor = 1;
+          this.el.sceneEl.addEventListener(
+            "twofingermove",
+            this.onPinch.bind(this)
+          );
+        },
+        onPinch: function (event) {
+          const newScaleFactor =
+            (this.scaleFactor * event.detail.spread) /
+            event.detail.startSpread;
 
-    <a-entity camera></a-entity>
-  </a-scene>
-</body>
+          this.el.setAttribute("scale", {
+            x: this.initialScale.x * newScaleFactor,
+            y: this.initialScale.y * newScaleFactor,
+            z: this.initialScale.z * newScaleFactor,
+          });
+
+          if (event.detail.isFinal) {
+            this.scaleFactor = newScaleFactor;
+          }
+        },
+      });
+
+      AFRAME.registerComponent("drag-rotate", {
+        schema: {
+          sensitivity: { default: 1 },
+        },
+        init: function () {
+          this.isDragging = false;
+          this.previousMousePosition = { x: 0, y: 0 };
+
+          this.el.addEventListener("mousedown", this.onMouseDown.bind(this));
+          this.el.addEventListener("mouseup", this.onMouseUp.bind(this));
+          this.el.addEventListener("mousemove", this.onMouseMove.bind(this));
+        },
+        onMouseDown: function (event) {
+          this.isDragging = true;
+          this.previousMousePosition = {
+            x: event.clientX,
+            y: event.clientY,
+          };
+        },
+        onMouseUp: function () {
+          this.isDragging = false;
+        },
+        onMouseMove: function (event) {
+          if (!this.isDragging) return;
+
+          const deltaX =
+            event.clientX - this.previousMousePosition.x;
+          this.el.object3D.rotation.y -=
+            deltaX * this.data.sensitivity * 0.01;
+
+          this.previousMousePosition = {
+            x: event.clientX,
+            y: event.clientY,
+          };
+        },
+      });
+    </script>
+  </body>
 </html>
